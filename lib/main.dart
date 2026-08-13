@@ -154,8 +154,8 @@ Future<Null> initApp(bool bubble, List<String> arguments) async {
         await windowManager.ensureInitialized();
         await windowManager.setPreventClose(SettingsSvc.settings.closeToTray.value);
         await windowManager.setTitle('BlueBubbles');
-        await Window.initialize();
         if (Platform.isWindows) {
+          await Window.initialize();
           await Window.hideWindowControls();
         } else if (Platform.isLinux) {
           await windowManager.setTitleBarStyle(SettingsSvc.settings.titleBarStyle.value == BBTitleBarStyle.native
@@ -662,31 +662,29 @@ class _HomeState extends State<Home> with WidgetsBindingObserver, TrayListener {
         StartIncrementalSyncIntent: StartIncrementalSyncAction(),
         GoBackIntent: GoBackAction(context),
       },
-      child: Obx(() => BBScaffold(
-            backgroundColor: context.theme.colorScheme.surface.themeOpacity(context),
-            body: Builder(
-              builder: (BuildContext context) {
-                if (SettingsSvc.settings.finishedSetup.value) {
-                  if (!serverCompatible && kIsWeb) {
-                    return const FailureToStart(
-                      otherTitle: "Server version too low, please upgrade!",
-                      e: "Required Server Version: v0.2.0",
-                    );
-                  }
-                  return ConversationList(
-                    showArchivedChats: false,
-                    showUnknownSenders: false,
-                  );
-                } else {
-                  return PopScope(
-                    canPop: false,
-                    child: TitleBarWrapper(
-                        child: kIsWeb || kIsDesktop ? const SetupView() : SplashScreen(shouldNavigate: fullyLoaded)),
-                  );
-                }
-              },
-            ),
-          )),
+      child: BBScaffold(
+        backgroundColor: context.theme.colorScheme.surface.themeOpacity(context),
+        body: Obx(() {
+          if (SettingsSvc.settings.finishedSetup.value) {
+            if (!serverCompatible && kIsWeb) {
+              return const FailureToStart(
+                otherTitle: "Server version too low, please upgrade!",
+                e: "Required Server Version: v0.2.0",
+              );
+            }
+            return ConversationList(
+              showArchivedChats: false,
+              showUnknownSenders: false,
+            );
+          } else {
+            return PopScope(
+              canPop: false,
+              child: TitleBarWrapper(
+                  child: kIsWeb || kIsDesktop ? const SetupView() : SplashScreen(shouldNavigate: fullyLoaded)),
+            );
+          }
+        }),
+      ),
     );
   }
 }

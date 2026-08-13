@@ -282,10 +282,12 @@ class MessagesViewState extends State<MessagesView> with MessagesServiceMixin, T
     if (recipient != null) {
       HttpSvc.handle.handleFocusState(recipient.address).then((response) {
         if (!mounted) return;
-        final status = response.data['data']['status'];
-        controller.recipientNotifsSilenced.value = status != "none";
+        final status = response.data?['data']?['status'];
+        if (status != null) {
+          controller.recipientNotifsSilenced.value = status != "none";
+        }
       }).catchError((error, stack) async {
-        Logger.error('Failed to get focus state!', error: error, trace: stack);
+        Logger.debug('Focus state check unavailable: $error', tag: 'MessagesView');
       });
     }
   }

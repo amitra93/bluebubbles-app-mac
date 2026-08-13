@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:get/get.dart';
+import 'package:universal_io/io.dart';
 
 class SamsungConversationList extends StatefulWidget {
   const SamsungConversationList({super.key, required this.parentController});
@@ -28,9 +29,9 @@ class _SamsungConversationListState extends State<SamsungConversationList> with 
   bool get showArchived => widget.parentController.showArchivedChats;
   bool get showUnknown => widget.parentController.showUnknownSenders;
   Color get backgroundColor =>
-      SettingsSvc.settings.windowEffect.value == WindowEffect.disabled ? headerColor : Colors.transparent;
+      SettingsSvc.settings.windowEffect.value == WindowEffect.disabled || !Platform.isWindows ? headerColor : Colors.transparent;
   Color get _tileColor =>
-      SettingsSvc.settings.windowEffect.value == WindowEffect.disabled ? tileColor : Colors.transparent;
+      SettingsSvc.settings.windowEffect.value == WindowEffect.disabled || !Platform.isWindows ? tileColor : Colors.transparent;
   ConversationListController get controller => widget.parentController;
 
   @override

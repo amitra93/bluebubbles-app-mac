@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:get/get.dart';
+import 'package:universal_io/io.dart';
 
 class MaterialConversationList extends StatefulWidget {
   const MaterialConversationList({super.key, required this.parentController});
@@ -24,7 +25,7 @@ class MaterialConversationList extends StatefulWidget {
 class _MaterialConversationListState extends State<MaterialConversationList> {
   bool get showArchived => widget.parentController.showArchivedChats;
   bool get showUnknown => widget.parentController.showUnknownSenders;
-  Color get backgroundColor => SettingsSvc.settings.windowEffect.value == WindowEffect.disabled
+  Color get backgroundColor => SettingsSvc.settings.windowEffect.value == WindowEffect.disabled || !Platform.isWindows
       ? context.theme.colorScheme.surface
       : Colors.transparent;
   ConversationListController get controller => widget.parentController;
@@ -67,7 +68,7 @@ class _MaterialConversationListState extends State<MaterialConversationList> {
             preferredSize: const Size.fromHeight(60),
             child: MaterialHeader(parentController: controller),
           ),
-          backgroundColor: SettingsSvc.settings.windowEffect.value == WindowEffect.disabled
+          backgroundColor: SettingsSvc.settings.windowEffect.value == WindowEffect.disabled || !Platform.isWindows
               ? context.theme.colorScheme.surfaceContainerHighest
               : Colors.transparent,
           extendBodyBehindAppBar: false,

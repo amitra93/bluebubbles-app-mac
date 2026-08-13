@@ -59,6 +59,7 @@ class HandleApi {
       final response = await _svc.dio.get(
         "${_svc.apiRoot}/handle/$address/focus",
         queryParameters: _svc.buildQueryParams(),
+        options: Options(sendTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 10)),
         cancelToken: cancelToken,
       );
       return _svc.returnSuccessOrError(response);

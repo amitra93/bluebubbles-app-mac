@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:get/get.dart';
+import 'package:universal_io/io.dart';
 import 'package:flutter_sliding_up_panel/flutter_sliding_up_panel.dart';
 
 import 'search_models.dart';
@@ -61,7 +62,7 @@ class SearchViewState extends State<SearchView> with ThemeHelpers {
   final RxBool isNotFromMe = false.obs;
   final Rx<DateTime?> sinceDate = Rx<DateTime?>(null);
 
-  Color get backgroundColor => SettingsSvc.settings.windowEffect.value == WindowEffect.disabled
+  Color get backgroundColor => SettingsSvc.settings.windowEffect.value == WindowEffect.disabled || !Platform.isWindows
       ? context.theme.colorScheme.surface
       : Colors.transparent;
 

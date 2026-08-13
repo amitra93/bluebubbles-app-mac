@@ -32,7 +32,7 @@ class CupertinoConversationListState extends State<CupertinoConversationList> wi
 
   bool get showUnknown => widget.parentController.showUnknownSenders;
 
-  Color get backgroundColor => SettingsSvc.settings.windowEffect.value == WindowEffect.disabled
+  Color get backgroundColor => SettingsSvc.settings.windowEffect.value == WindowEffect.disabled || !Platform.isWindows
       ? context.theme.colorScheme.surface
       : Colors.transparent;
 
@@ -55,7 +55,7 @@ class CupertinoConversationListState extends State<CupertinoConversationList> wi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: SettingsSvc.settings.windowEffect.value != WindowEffect.disabled
+      backgroundColor: SettingsSvc.settings.windowEffect.value != WindowEffect.disabled && Platform.isWindows
           ? Colors.transparent
           : context.theme.colorScheme.surface,
       extendBodyBehindAppBar: !showArchived && !showUnknown,

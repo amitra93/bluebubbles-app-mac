@@ -43,10 +43,16 @@ class Database {
     // Web doesn't use a database currently, so do not do anything
     if (kIsWeb) return;
 
-    if (!kIsDesktop) {
-      await _initDatabaseMobile();
-    } else {
-      await _initDatabaseDesktop();
+    try {
+      if (!kIsDesktop) {
+        await _initDatabaseMobile();
+      } else {
+        await _initDatabaseDesktop();
+      }
+    } catch (e) {
+      Logger.error("Database initialization failed, skipping box setup: $e");
+      if (!initComplete.isCompleted) initComplete.completeError(e);
+      return;
     }
 
     try {
@@ -100,7 +106,7 @@ class Database {
 
     await seedThemes();
 
-    initComplete.complete();
+    if (!initComplete.isCompleted) initComplete.complete();
   }
 
   static Future<void> waitForInit() async {
@@ -131,6 +137,8 @@ class Database {
       if (e.toString().contains("another store is still open using the same path")) {
         Logger.info("Retrying to attach to an existing ObjectBox store");
         await _initDatabaseMobile(storeOpenStatus: true);
+      } else {
+        rethrow;
       }
     }
   }
@@ -169,6 +177,7 @@ class Database {
       }
     } catch (e, s) {
       Logger.error("Failed to initialize desktop ObjectBox store!", error: e, trace: s);
+      rethrow;
     }
   }
 

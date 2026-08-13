@@ -122,7 +122,7 @@ class BBScaffold extends StatelessWidget {
     // If we need to react to changes in settings, this needs to come from the "top down",
     // instead of going through GetX's reactive system here.
     final effectiveBackgroundColor = backgroundColor ??
-        (SettingsSvc.settings.windowEffect.value != WindowEffect.disabled
+        (SettingsSvc.settings.windowEffect.value != WindowEffect.disabled && Platform.isWindows
             ? Colors.transparent
             : Theme.of(context).colorScheme.surface);
 

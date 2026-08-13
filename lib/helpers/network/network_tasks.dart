@@ -132,11 +132,11 @@ class NetworkTasks {
         if (createSnackbar && HttpSvc.originOverride != null) {
           showToast('Connected to ${HttpSvc.originOverride}');
         }
-        completer.complete();
+        if (!completer.isCompleted) completer.complete();
       },
       onError: (_, __) {
         setOriginOverride(null);
-        completer.complete();
+        if (!completer.isCompleted) completer.complete();
       },
     );
     await completer.future;

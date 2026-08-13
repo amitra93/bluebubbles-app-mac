@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:get/get.dart';
+import 'package:universal_io/io.dart';
 
 class HexColor extends Color {
   HexColor(final String hexColor) : super(_getColorFromHex(hexColor));
@@ -265,8 +266,10 @@ extension ColorHelpers on Color {
   }
 
   Color themeOpacity(BuildContext context) {
-    if (SettingsSvc.settings.windowEffect.value == WindowEffect.disabled) return withValues(alpha: 1.0.obs.value);
-    if (!WindowEffects.dependsOnColor()) return withValues(alpha: 0.0.obs.value);
+    if (!kIsDesktop || Platform.isMacOS || SettingsSvc.settings.windowEffect.value == WindowEffect.disabled) {
+      return withValues(alpha: 1.0);
+    }
+    if (!WindowEffects.dependsOnColor()) return withValues(alpha: 0.0);
     if (!ThemeSvc.inDarkMode(context)) {
       return withValues(alpha: SettingsSvc.settings.windowEffectCustomOpacityLight.value);
     } else {

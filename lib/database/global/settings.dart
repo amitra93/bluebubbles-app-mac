@@ -689,7 +689,7 @@ class Settings {
     SettingsSvc.settings.windowEffect.value = kIsDesktop && Platform.isWindows
         ? WindowEffect.values.firstWhereOrNull((e) => e.name == map['windowEffect']) ??
             SettingsSvc.settings.windowEffect.value
-        : SettingsSvc.settings.windowEffect.value;
+        : WindowEffect.disabled;
     SettingsSvc.settings.windowEffectCustomOpacityLight.value =
         map['windowEffectCustomOpacityLight']?.toDouble() ?? SettingsSvc.settings.windowEffectCustomOpacityLight.value;
     SettingsSvc.settings.windowEffectCustomOpacityDark.value =

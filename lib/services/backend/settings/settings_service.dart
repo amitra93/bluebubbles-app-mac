@@ -13,6 +13,7 @@ import 'package:bluebubbles/services/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:get/get.dart';
 import 'package:github/github.dart' hide Source;
@@ -46,6 +47,9 @@ class SettingsService {
 
   Future<void> init({bool headless = false}) async {
     settings = Settings.getSettings();
+    if (kIsDesktop && !Platform.isWindows) {
+      settings.windowEffect.value = WindowEffect.disabled;
+    }
     // Populate server details from prefs so sync getters are usable immediately.
     _serverDetails.value = ServerDetails(
       macOSVersion: PrefsSvc.server.getMacOSVersion() ?? 11,

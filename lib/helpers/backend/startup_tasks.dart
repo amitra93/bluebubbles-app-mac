@@ -411,23 +411,8 @@ class StartupTasks {
       return null; // Return null on error
     });
 
-    // We don't need to check for updates immediately, so delay it so other
-    // code has a chance to run and we don't block the UI thread.
-    Logger.info("Scheduling update checks for 30 seconds from now...");
-    Future.delayed(const Duration(seconds: 30), () {
-      Logger.info("Running scheduled update checks...");
-      try {
-        SettingsSvc.checkServerUpdate();
-      } catch (ex, stack) {
-        Logger.warn("Failed to check for server update!", error: ex, trace: stack);
-      }
-
-      try {
-        SettingsSvc.checkClientUpdate();
-      } catch (ex, stack) {
-        Logger.warn("Failed to check for client update!", error: ex, trace: stack);
-      }
-    });
+    // Automatic app update checks disabled per configuration
+    Logger.info("Automatic update checks disabled");
 
     Logger.info("Updating share targets...");
     await ChatsSvc.updateShareTargets();
@@ -544,7 +529,7 @@ class StartupTasks {
   }
 
   static Future<void> checkInstanceLock() async {
-    if (!kIsDesktop || !Platform.isLinux) return;
+    if (!kIsDesktop || kIsWeb || (!Platform.isLinux && !Platform.isMacOS)) return;
     Logger.debug("Starting process with PID $pid");
 
     final lockFile = File(join(FilesystemSvc.appDocDir.path, 'bluebubbles.lck'));
@@ -561,12 +546,14 @@ class StartupTasks {
     }
 
     Logger.debug("Lockfile at ${lockFile.path}");
-    String _pid = lockFile.readAsStringSync();
-    String ps = Process.runSync('ps', ['-p', _pid]).stdout;
-    if (kReleaseMode && "$pid" != _pid && ps.endsWith('bluebubbles\n')) {
-      Logger.debug("Another instance is running. Sending foreground signal");
-      instanceFile.openSync(mode: FileMode.write).closeSync();
-      exit(0);
+    String _pid = lockFile.readAsStringSync().trim();
+    if (_pid.isNotEmpty && "$pid" != _pid) {
+      String ps = Process.runSync('ps', ['-p', _pid]).stdout;
+      if (ps.contains('bluebubbles')) {
+        Logger.debug("Another instance is running. Sending foreground signal");
+        instanceFile.openSync(mode: FileMode.write).closeSync();
+        exit(0);
+      }
     }
 
     lockFile.writeAsStringSync("$pid");
@@ -574,19 +561,22 @@ class StartupTasks {
       Logger.debug("Got Signal to go to foreground");
       doWhenWindowReady(() async {
         await windowManager.show();
-        List<WindowEntry?> widAndNames = await (await Process.start('wmctrl', ['-pl']))
-            .stdout
-            .transform(utf8.decoder)
-            .transform(const LineSplitter())
-            .map((line) => line.replaceAll(RegExp(r"\s+"), " ").split(" "))
-            .map((split) => split[2] == "$pid" ? WindowEntry(split.first, split.last) : null)
-            .where((entry) => entry != null)
-            .toList();
+        await windowManager.focus();
+        if (Platform.isLinux) {
+          List<WindowEntry?> widAndNames = await (await Process.start('wmctrl', ['-pl']))
+              .stdout
+              .transform(utf8.decoder)
+              .transform(const LineSplitter())
+              .map((line) => line.replaceAll(RegExp(r"\s+"), " ").split(" "))
+              .map((split) => split[2] == "$pid" ? WindowEntry(split.first, split.last) : null)
+              .where((entry) => entry != null)
+              .toList();
 
-        for (WindowEntry? window in widAndNames) {
-          if (window?.name == "BlueBubbles") {
-            Process.runSync('wmctrl', ['-iR', window!.id]);
-            break;
+          for (WindowEntry? window in widAndNames) {
+            if (window?.name == "BlueBubbles") {
+              Process.runSync('wmctrl', ['-iR', window!.id]);
+              break;
+            }
           }
         }
       });

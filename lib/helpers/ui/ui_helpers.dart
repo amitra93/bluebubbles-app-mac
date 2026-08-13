@@ -533,6 +533,15 @@ IconData getAttachmentIcon(String mimeType) {
 
 void showSnackbar(String title, String message,
     {int animationMs = 250, int durationMs = 1500, Function(GetSnackBar)? onTap, TextButton? button}) {
+  if (Get.context == null || Get.key.currentState?.context == null) {
+    Logger.info("Snackbar ($title: $message) skipped: no UI context available");
+    return;
+  }
+  double maxWidth = 300;
+  try {
+    maxWidth = MediaQuery.of(Get.context!).size.width - 20;
+  } catch (_) {}
+
   Get.snackbar(
     title,
     message,
@@ -540,7 +549,7 @@ void showSnackbar(String title, String message,
     colorText: Get.theme.colorScheme.onInverseSurface,
     backgroundColor: Get.theme.colorScheme.inverseSurface,
     margin: const EdgeInsets.only(bottom: 10),
-    maxWidth: Get.width - 20,
+    maxWidth: maxWidth,
     isDismissible: false,
     duration: Duration(milliseconds: durationMs),
     animationDuration: Duration(milliseconds: animationMs),

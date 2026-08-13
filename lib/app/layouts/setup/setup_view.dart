@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart';
 import 'package:get/get.dart';
+import 'package:universal_io/io.dart';
 
 class SetupViewController extends StatefulController {
   final pageController = PageController(initialPage: 0);
@@ -86,7 +87,7 @@ class _SetupViewState extends State<SetupView> {
     return PopScope(
       canPop: false,
       child: Scaffold(
-        backgroundColor: SettingsSvc.settings.windowEffect.value != WindowEffect.disabled
+        backgroundColor: SettingsSvc.settings.windowEffect.value != WindowEffect.disabled && Platform.isWindows
             ? Colors.transparent
             : context.theme.colorScheme.surface,
         body: SafeArea(
