@@ -139,6 +139,15 @@ class ConversationViewController extends StatefulController with GetSingleTicker
   /// Future that resolves once [MessagesView] has fully initialized.
   Future<void> get messagesViewReady => _messagesViewReady.future;
 
+  /// Coordinates message list mutations against the in-flight send animation.
+  ///
+  /// [SendAnimation] holds this for the duration of its flight so that a
+  /// message arriving at the same moment can't insert into the list (or toggle
+  /// the smart reply / typing indicator rows) and move the animation's landing
+  /// target out from under it. Held work replays as soon as the gate opens.
+  /// The send itself is never gated — see [MessageListGate].
+  final MessageListGate messageListGate = MessageListGate();
+
   @override
   void onInit() {
     super.onInit();
@@ -189,6 +198,7 @@ class ConversationViewController extends StatefulController with GetSingleTicker
 
   @override
   void onClose() {
+    messageListGate.dispose();
     updateSmartReplyLayout(visible: false, height: 0);
     for (PlayerController a in audioPlayers.values) {
       a.pausePlayer();
@@ -203,6 +213,16 @@ class ConversationViewController extends StatefulController with GetSingleTicker
     }
     scrollController.dispose();
     super.onClose();
+  }
+
+  /// Disposes and evicts the cached [VideoController] for [attachmentGuid] -- call before a
+  /// redownload replaces the underlying file, since the cached controller/aspect ratio is from
+  /// the old decode and would otherwise get reused as-is.
+  void invalidateVideoPlayer(String attachmentGuid) {
+    final controller = videoPlayers.remove(attachmentGuid);
+    if (controller == null) return;
+    controller.player.pause();
+    controller.player.dispose();
   }
 
   Future<void> scrollToBottom() async {

@@ -251,7 +251,7 @@ class _ImageViewerState extends State<ImageViewer> with AutomaticKeepAliveClient
           gaplessPlayback: true,
           filterQuality: FilterQuality.high,
           width: displayWidth,
-          height: displayHeight,
+          // height: displayHeight,
           // Display space, width only. The decoder already applies EXIF
           // orientation (dimensions it reports, and cacheWidth/cacheHeight it
           // accepts, are post-rotation), so nothing here may re-apply it.
@@ -314,7 +314,9 @@ class _ImageViewerState extends State<ImageViewer> with AutomaticKeepAliveClient
           filterQuality: FilterQuality.high,
           fit: BoxFit.contain,
           width: displayWidth,
-          height: displayHeight,
+          // Commented out because it causes clipping issues
+          // when an image exists in the same message as text.
+          // height: displayHeight,
           cacheWidth: calculatedWidth,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
             if (wasSynchronouslyLoaded) return child;
@@ -339,7 +341,9 @@ class _ImageViewerState extends State<ImageViewer> with AutomaticKeepAliveClient
                   gaplessPlayback: true,
                   filterQuality: FilterQuality.high,
                   width: displayWidth,
-                  height: displayHeight,
+                  // Commented out because it causes clipping issues
+                  // when an image exists in the same message as text.
+                  // height: displayHeight,
                   cacheWidth: calculatedWidth,
                   fit: BoxFit.contain,
                   frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
@@ -363,7 +367,9 @@ class _ImageViewerState extends State<ImageViewer> with AutomaticKeepAliveClient
           gaplessPlayback: true,
           filterQuality: FilterQuality.high,
           width: displayWidth,
-          height: displayHeight,
+          // Commented out because it causes clipping issues
+          // when an image exists in the same message as text.
+          // height: displayHeight,
           cacheWidth: calculatedWidth,
           fit: BoxFit.contain,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
@@ -413,9 +419,9 @@ class _ImageViewerState extends State<ImageViewer> with AutomaticKeepAliveClient
             Obx(
               () => !isPlayingLivePhoto.value
                   ? Positioned(
-                      top: 8,
-                      right: widget.isFromMe ? null : 8,
-                      left: widget.isFromMe ? 8 : null,
+                      top: 12,
+                      right: widget.isFromMe ? null : 10,
+                      left: widget.isFromMe ? 10 : null,
                       child: GestureDetector(
                         onTap: () {
                           if (!isDownloadingLivePhoto.value) {
@@ -423,7 +429,7 @@ class _ImageViewerState extends State<ImageViewer> with AutomaticKeepAliveClient
                           }
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(4),

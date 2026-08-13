@@ -60,6 +60,7 @@ class IsolateActons {
     IsolateRequestType.saveMessageAsync: MessageActions.saveMessageAsync,
     IsolateRequestType.findOneAsync: MessageActions.findOneAsync,
     IsolateRequestType.findAsync: MessageActions.findAsync,
+    IsolateRequestType.relinkMessagesToHandle: MessageActions.relinkMessagesToHandle,
 
     // Chat
     IsolateRequestType.clearNotificationForChat: ChatActions.clearNotificationForChat,
@@ -88,6 +89,7 @@ class IsolateActons {
 
     // ContactV2 (new contact service)
     IsolateRequestType.syncContactsToHandles: ContactV2Actions.syncContactsToHandles,
+    IsolateRequestType.syncContactsToHandlesWithStats: ContactV2Actions.syncContactsToHandlesWithStats,
     IsolateRequestType.getStoredContactIds: ContactV2Actions.getStoredContactIds,
     IsolateRequestType.findOneContact: ContactV2Actions.findOneContact,
     IsolateRequestType.getContactsForHandles: ContactV2Actions.getContactsForHandles,
@@ -95,6 +97,7 @@ class IsolateActons {
     IsolateRequestType.getAllContacts: ContactV2Actions.getAllContacts,
     IsolateRequestType.getContactAvatar: ContactV2Actions.getContactAvatar,
     IsolateRequestType.uploadContactsV2: ContactV2Actions.uploadContacts,
+    IsolateRequestType.getAccountContactCounts: ContactV2Actions.getAccountContactCounts,
 
     // Attachment
     IsolateRequestType.saveAttachmentAsync: AttachmentActions.saveAttachmentAsync,

@@ -116,6 +116,14 @@ class Settings {
   final RxnString receiveSoundPath = RxnString();
   final RxInt soundVolume = 100.obs;
   final RxBool syncContactsAutomatically = false.obs;
+  /// Device account to sync contacts from, e.g. "user@gmail.com" (Android's
+  /// `Account.name`). Null means "all accounts" — the default, unfiltered
+  /// behavior. Must be set together with [contactSyncAccountType].
+  final RxnString contactSyncAccountName = RxnString();
+  /// Device account type to sync contacts from, e.g. "com.google" (Android's
+  /// `Account.type`). Null means "all accounts". Must be set together with
+  /// [contactSyncAccountName].
+  final RxnString contactSyncAccountType = RxnString();
   final RxBool scrollToBottomOnSend = true.obs;
   final RxBool sendEventsToTasker = false.obs;
   final RxBool keepAppAlive = false.obs;
@@ -150,6 +158,11 @@ class Settings {
   // Unified Push Settings
   final RxBool enableUnifiedPush = false.obs;
   final RxString endpointUnifiedPush = RxString("");
+
+  // FCM (Firebase) push delivery — Android's default notification transport. Turn off to
+  // skip Firebase registration when using another provider (e.g. UnifiedPush) or the
+  // background service; the server then drops the device via its inactivity purge.
+  final RxBool enableFcm = true.obs;
 
   // Quick tapback settings
   final RxBool enableQuickTapback = false.obs;
@@ -385,6 +398,8 @@ class Settings {
       'useLocalIpv6': useLocalIpv6.value,
       'soundVolume': soundVolume.value,
       'syncContactsAutomatically': syncContactsAutomatically.value,
+      'contactSyncAccountName': contactSyncAccountName.value,
+      'contactSyncAccountType': contactSyncAccountType.value,
       'scrollToBottomOnSend': scrollToBottomOnSend.value,
       'sendEventsToTasker': sendEventsToTasker.value,
       'keepAppAlive': keepAppAlive.value,
@@ -395,6 +410,7 @@ class Settings {
       'privateAPIAttachmentSend': privateAPIAttachmentSend.value,
       'enableUnifiedPush': enableUnifiedPush.value,
       'endpointUnifiedPush': endpointUnifiedPush.value,
+      'enableFcm': enableFcm.value,
       'highlightSelectedChat': highlightSelectedChat.value,
       'enablePrivateAPI': enablePrivateAPI.value,
       'privateSendTypingIndicators': privateSendTypingIndicators.value,
@@ -588,6 +604,10 @@ class Settings {
     SettingsSvc.settings.soundVolume.value = map['soundVolume'] ?? SettingsSvc.settings.soundVolume.value;
     SettingsSvc.settings.syncContactsAutomatically.value =
         map['syncContactsAutomatically'] ?? SettingsSvc.settings.syncContactsAutomatically.value;
+    SettingsSvc.settings.contactSyncAccountName.value =
+        map['contactSyncAccountName'] ?? SettingsSvc.settings.contactSyncAccountName.value;
+    SettingsSvc.settings.contactSyncAccountType.value =
+        map['contactSyncAccountType'] ?? SettingsSvc.settings.contactSyncAccountType.value;
     SettingsSvc.settings.scrollToBottomOnSend.value =
         map['scrollToBottomOnSend'] ?? SettingsSvc.settings.scrollToBottomOnSend.value;
     SettingsSvc.settings.sendEventsToTasker.value =
@@ -630,6 +650,7 @@ class Settings {
         map['enableUnifiedPush'] ?? SettingsSvc.settings.enableUnifiedPush.value;
     SettingsSvc.settings.endpointUnifiedPush.value =
         map['endpointUnifiedPush'] ?? SettingsSvc.settings.endpointUnifiedPush.value;
+    SettingsSvc.settings.enableFcm.value = map['enableFcm'] ?? SettingsSvc.settings.enableFcm.value;
     SettingsSvc.settings.enableQuickTapback.value =
         map['enableQuickTapback'] ?? SettingsSvc.settings.enableQuickTapback.value;
     SettingsSvc.settings.quickTapbackType.value =
@@ -801,6 +822,8 @@ class Settings {
     s.receiveSoundPath.value = map['receiveSoundPath'];
     s.soundVolume.value = map['soundVolume'] ?? 100;
     s.syncContactsAutomatically.value = map['syncContactsAutomatically'] ?? false;
+    s.contactSyncAccountName.value = map['contactSyncAccountName'];
+    s.contactSyncAccountType.value = map['contactSyncAccountType'];
     s.scrollToBottomOnSend.value = map['scrollToBottomOnSend'] ?? true;
     s.sendEventsToTasker.value = map['sendEventsToTasker'] ?? false;
     s.keepAppAlive.value = map['keepAppAlive'] ?? false;
@@ -826,6 +849,7 @@ class Settings {
     s.hideMessageContent.value = map['generateFakeMessageContent'] ?? false;
     s.enableUnifiedPush.value = map['enableUnifiedPush'] ?? false;
     s.endpointUnifiedPush.value = map['endpointUnifiedPush'] ?? "";
+    s.enableFcm.value = map['enableFcm'] ?? true;
     s.enableQuickTapback.value = map['enableQuickTapback'] ?? false;
     s.quickTapbackType.value = map['quickTapbackType'] ?? ReactionTypes.toList()[0];
     s.notificationReactionAction.value = map['notificationReactionAction'] ?? true;

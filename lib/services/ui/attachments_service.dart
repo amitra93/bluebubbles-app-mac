@@ -6,6 +6,8 @@ import 'package:bluebubbles/services/services.dart';
 import 'package:bluebubbles/helpers/helpers.dart';
 import 'package:bluebubbles/utils/logger/logger.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:ffmpeg_kit_flutter_new_min/ffmpeg_kit.dart';
+import 'package:ffmpeg_kit_flutter_new_min/return_code.dart';
 import 'package:file_picker/file_picker.dart' hide PlatformFile;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,13 +17,13 @@ import 'package:image_size_getter/file_input.dart';
 import 'package:image_size_getter/image_size_getter.dart' as isg;
 import 'package:path/path.dart';
 import 'package:bluebubbles/models/models.dart' show AttachmentUploadProgress;
+import 'package:bluebubbles/utils/file_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:saver_gallery/saver_gallery.dart';
 import 'package:universal_html/html.dart' as html;
 import 'package:universal_io/io.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:vcf_dart/vcf_dart.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
 
 // ignore: non_constant_identifier_names
 AttachmentsService AttachmentsSvc = Get.isRegistered<AttachmentsService>()
@@ -46,6 +48,15 @@ class AttachmentsService extends GetxService {
       if (File(candidate).existsSync()) return candidate;
     }
     return null;
+  }
+
+  /// Whether [attachment] (or its converted sibling) is already on disk at [path]
+  /// (defaults to `attachment.path`). Read-only -- unlike [getContent], this never
+  /// starts a download, so it's safe to call from a `build()`-time visibility check.
+  bool hasLocalFile(Attachment attachment, {String? path}) {
+    if (kIsWeb) return attachment.bytes != null;
+    final pathName = path ?? attachment.path;
+    return File(pathName).existsSync() || _existingConvertedPath(attachment, pathName) != null;
   }
 
   dynamic getContent(Attachment attachment, {String? path, bool? autoDownload, Function(PlatformFile)? onComplete}) {
@@ -153,13 +164,12 @@ class AttachmentsService extends GetxService {
     }
 
     final pathName = path ?? attachment.path;
-    final localFile = File(pathName);
     final convertedPath = _existingConvertedPath(attachment, pathName);
-    final hasLocalFile = localFile.existsSync() || convertedPath != null;
+    final localFileExists = hasLocalFile(attachment, path: pathName);
 
     // Prefer local file presence over the persisted flag because isDownloaded can
     // drift out of sync with filesystem state (e.g. failed display / stale DB flag).
-    if ((attachment.isDownloaded == true && hasLocalFile) || hasLocalFile) {
+    if ((attachment.isDownloaded == true && localFileExists) || localFileExists) {
       // For images, check if we need HEIC/TIFF conversion. Both fall back to the
       // original when nothing has been converted yet — iOS/macOS decode HEIC
       // natively, and everywhere else conversion happens on first display.
@@ -169,7 +179,7 @@ class AttachmentsService extends GetxService {
           (attachment.mimeType?.contains('image/tif') ?? false);
       if (needsConversion) {
         compatiblePath = convertedPath ?? pathName;
-      } else if (!localFile.existsSync() && convertedPath != null) {
+      } else if (!File(pathName).existsSync() && convertedPath != null) {
         // Fallback when original file is gone but converted file remains.
         compatiblePath = convertedPath;
       }
@@ -238,18 +248,30 @@ class AttachmentsService extends GetxService {
         ..setAttribute("download", file.name)
         ..click();
     } else if (kIsDesktop) {
-      String? savePath = await FilePicker.saveFile(
-        initialDirectory: await FilesystemSvc.downloadsDirectory,
-        dialogTitle: 'Choose a location to save this file',
-        fileName: file.name,
-        lockParentWindow: true,
-        type: file.extension != null ? FileType.custom : FileType.any,
-        allowedExtensions: file.extension != null ? [file.extension!] : null,
-      );
+      if (file.path == null && file.bytes == null) {
+        return showSnackbar('Error', 'That attachment has no data to save!');
+      }
 
-      if (savePath == null) {
+      final String? picked;
+      try {
+        picked = await saveFileAs(
+          fileName: file.name,
+          initialDirectory: await FilesystemSvc.downloadsDirectory,
+          sourcePath: file.path,
+          bytes: file.path == null ? file.bytes : null,
+          allowedExtensions: file.extension != null ? [file.extension!] : null,
+        );
+      } catch (ex, stack) {
+        Logger.error('Failed to save attachment!', error: ex, trace: stack);
+        return showSnackbar('Error', 'Failed to save attachment!');
+      }
+
+      if (picked == null) {
         return showSnackbar('Error', 'You didn\'t select a file path!');
       }
+      // Non-nullable copy: the null check above doesn't promote inside the
+      // snackbar's callback.
+      final String savePath = picked;
 
       showSnackbar(
         'Success',
@@ -338,6 +360,13 @@ class AttachmentsService extends GetxService {
     // Clear in-memory payload so stale bytes are not treated as a completed file.
     attachment.bytes = null;
 
+    // Drop the cached VideoController -- its decode/aspect ratio is from the file we're
+    // about to replace.
+    final chatGuid = attachment.message.target?.chat.target?.guid;
+    if (chatGuid != null && Get.isRegistered<ConversationViewController>(tag: chatGuid)) {
+      Get.find<ConversationViewController>(tag: chatGuid).invalidateVideoPlayer(attachment.guid!);
+    }
+
     if (!kIsWeb) {
       // Both conversion paths, since a file converted by an older build still
       // sits at the legacy `.png` location.
@@ -412,62 +441,116 @@ class AttachmentsService extends GetxService {
     }
   }
 
-  /// In-memory cache of video thumbnail bytes keyed by video file path, so widgets can render a
-  /// previously-loaded thumbnail synchronously (no async disk read → no placeholder flash).
-  final Map<String, Uint8List> _videoThumbnailMemCache = {};
-  static const int _videoThumbnailMemCacheMax = 64;
-
-  Uint8List? getCachedVideoThumbnailSync(String filePath) => _videoThumbnailMemCache[filePath];
-
-  /// Clears the in-memory video thumbnail cache. Call after bulk-deleting
-  /// attachment files so stale bytes aren't served for paths that no longer
-  /// exist on disk.
-  void clearVideoThumbnailCache() => _videoThumbnailMemCache.clear();
-
-  void _memCacheVideoThumbnail(String filePath, Uint8List bytes) {
-    _videoThumbnailMemCache.remove(filePath);
-    _videoThumbnailMemCache[filePath] = bytes;
-    if (_videoThumbnailMemCache.length > _videoThumbnailMemCacheMax) {
-      _videoThumbnailMemCache.remove(_videoThumbnailMemCache.keys.first);
-    }
+  /// Returns the on-disk thumbnail path for [filePath] if one already exists there, else null.
+  /// A plain existence check -- disk is the only source of truth, so there's no cache to
+  /// invalidate when a video gets redownloaded/replaced.
+  String? getCachedVideoThumbnailSync(String filePath) {
+    final cachedPath = "$filePath.thumbnail";
+    return File(cachedPath).existsSync() ? cachedPath : null;
   }
 
-  Future<Uint8List?> getVideoThumbnail(String filePath, {bool useCachedFile = true}) async {
-    final cachedFile = File("$filePath.thumbnail");
+  /// The filter chain behind every video thumbnail. Shared by the ffmpeg-kit path and the arm64
+  /// Linux shell-out below so the two can't drift apart.
+  ///
+  /// Rotation is left to ffmpeg's default `-autorotate`, which handles iPhone .mov rotation flags
+  /// correctly on its own.
+  /// `thumbnail`: scans a short frame window for a non-blank one (iPhone clips often open on a
+  /// black frame).
+  /// `scale=iw*sar:ih,setsar=1`: bakes sample aspect ratio into pixel dimensions before the
+  /// box-fit -- some .mov clips have non-1:1 SAR, and a plain `scale=W:H` ignores it, unlike real
+  /// playback (mpv/media_kit), producing a wrongly-proportioned thumbnail.
+  /// `scale=512:512:force_original_aspect_ratio=decrease`: the actual box-fit.
+  static const _thumbnailFilter =
+      'thumbnail,scale=iw*sar:ih,setsar=1,scale=512:512:force_original_aspect_ratio=decrease';
+
+  static final _useSystemFfmpeg = Platform.isLinux && Platform.version.contains('linux_arm64');
+
+  /// Generates (or reuses) a video thumbnail and returns the path to it on disk -- never loads
+  /// the decoded thumbnail into memory as bytes, so callers must render it via [Image.file].
+  ///
+  /// When [useCachedFile] is true (the common case), the thumbnail is written next to the source
+  /// video at `$filePath.thumbnail` and reused across calls. When false (e.g. a picker preview for
+  /// a not-yet-sent attachment), a one-off thumbnail is written to the system temp directory
+  /// instead, since the source file may live in a location that isn't safe/writable to cache
+  /// alongside (e.g. the photo library).
+  Future<String?> getVideoThumbnail(String filePath, {bool useCachedFile = true}) async {
+    final cachedPath = "$filePath.thumbnail";
     if (useCachedFile) {
-      final memCached = _videoThumbnailMemCache[filePath];
-      if (memCached != null) return memCached;
-      try {
-        final bytes = await cachedFile.readAsBytes();
-        if (!_isLowResThumbnail(bytes)) {
-          _memCacheVideoThumbnail(filePath, bytes);
-          return bytes;
+      final cachedExists = await File(cachedPath).exists();
+      final cachedLowRes = cachedExists && await _isLowResThumbnailFile(cachedPath);
+      if (cachedExists && !cachedLowRes) {
+        return cachedPath;
+      }
+    }
+
+    final destPath = useCachedFile
+        ? cachedPath
+        : join(FilesystemSvc.sysTempPath,
+            "${basenameWithoutExtension(filePath)}_${DateTime.now().microsecondsSinceEpoch}.thumbnail.jpg");
+
+    bool success;
+
+    try {
+      if (_useSystemFfmpeg) {
+        // Process.run bypasses the shell and resolves `ffmpeg` on PATH, so the args go in as a
+        // list and the paths need no quoting or escaping.
+        final result = await Process.run('ffmpeg', [
+          '-y',
+          '-i', filePath,
+          '-vf', _thumbnailFilter,
+          '-frames:v', '1',
+          '-q:v', '2',
+          // Forces the output muxer -- the cached dest path has no image extension for ffmpeg to
+          // infer a format from.
+          '-f', 'mjpeg',
+          destPath,
+        ]);
+        success = result.exitCode == 0;
+        if (!success) {
+          Logger.warn('ffmpeg thumbnail failed for $filePath (rc=${result.exitCode}) stderr=${result.stderr}',
+              tag: 'VideoThumbnail');
         }
-      } catch (_) {}
+      } else {
+        final command = '-y '
+            '-i "${_ffmpegEscapePath(filePath)}" '
+            '-vf "$_thumbnailFilter" '
+            '-frames:v 1 -q:v 2 -f mjpeg '
+            '"${_ffmpegEscapePath(destPath)}"';
+        final session = await FFmpegKit.execute(command);
+        final returnCode = await session.getReturnCode();
+        success = ReturnCode.isSuccess(returnCode);
+        if (!success) {
+          final logs = await session.getAllLogsAsString();
+          Logger.warn('ffmpeg thumbnail failed for $filePath (rc=$returnCode) command="$command" logs=$logs',
+              tag: 'VideoThumbnail');
+        }
+      }
+    } catch (ex, stacktrace) {
+      Logger.error('ffmpeg thumbnail threw for $filePath -> $destPath', error: ex, trace: stacktrace, tag: 'VideoThumbnail');
+      rethrow;
     }
 
-    final thumbnail = await VideoThumbnail.thumbnailData(
-      video: filePath,
-      imageFormat: ImageFormat.PNG,
-      maxWidth: 512, // specify the width of the thumbnail, let the height auto-scaled to keep the source aspect ratio
-      quality: 25,
-    );
-
-    if (!isNullOrEmpty(thumbnail) && useCachedFile) {
-      _memCacheVideoThumbnail(filePath, thumbnail!);
-      await cachedFile.writeAsBytes(thumbnail);
+    if (!success) return null;
+    if (useCachedFile) {
+      // FileImage caches decoded bytes by path only, not content -- evict so a thumbnail
+      // regenerated at this same path (redownload, low-res cache-bust) isn't served stale.
+      PaintingBinding.instance.imageCache.evict(FileImage(File(destPath)));
     }
-
-    return thumbnail;
+    return destPath;
   }
+
+  /// Escapes a path for safe interpolation inside a double-quoted ffmpeg command argument.
+  String _ffmpegEscapePath(String path) => path.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
 
   /// Thumbnails were historically generated at 128px, which looks blurry now that video previews
   /// render at message-bubble size — treat those disk caches as stale so they get regenerated.
-  bool _isLowResThumbnail(Uint8List bytes) {
+  Future<bool> _isLowResThumbnailFile(String path) async {
     try {
-      final size = isg.ImageSizeGetter.getSizeResult(isg.MemoryInput(bytes)).size;
+      final sizeResult = await isg.ImageSizeGetter.getSizeResultAsync(AsyncInput(FileInput(File(path))));
+      final size = sizeResult.size;
       return size.width < 256 && size.height < 256;
-    } catch (_) {
+    } catch (ex) {
+      Logger.debug('_isLowResThumbnailFile: could not read header for $path ($ex)', tag: 'VideoThumbnail');
       return false;
     }
   }
@@ -864,7 +947,7 @@ class AttachmentsService extends GetxService {
     }
 
     try {
-      await File(tempPath).rename(previewPath);
+      await moveFile(File(tempPath), previewPath);
     } catch (ex, stack) {
       Logger.error('Failed to move image preview into place!', error: ex, trace: stack);
       return null;

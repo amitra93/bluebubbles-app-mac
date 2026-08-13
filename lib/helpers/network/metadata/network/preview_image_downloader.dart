@@ -3,6 +3,7 @@ import 'package:bluebubbles/helpers/network/metadata/network/metadata_http_clien
 import 'package:bluebubbles/helpers/network/metadata/util/metadata_urls.dart';
 import 'package:bluebubbles/services/backend/interfaces/image_interface.dart';
 import 'package:bluebubbles/services/services.dart';
+import 'package:bluebubbles/utils/file_utils.dart';
 import 'package:bluebubbles/utils/logger/logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_size_getter/image_size_getter.dart' as isg;
@@ -68,7 +69,7 @@ class PreviewImageDownloader {
 
   /// Anything smaller in either dimension is a spacer, a bullet or a tracking
   /// pixel rather than a preview.
-  static const int minDimension = 32;
+  static const int minDimension = 16;
 
   /// A body this small cannot be a real image.
   static const int minBytes = 128;
@@ -324,7 +325,7 @@ class PreviewImageDownloader {
         quality: optimizedQuality,
       );
       if (!ok) return null;
-      await File(tempPath).rename(path);
+      await moveFile(File(tempPath), path);
     } catch (ex, stack) {
       Logger.debug('Failed to downsample preview image: $ex', error: ex, trace: stack, tag: 'PreviewImage');
       try {

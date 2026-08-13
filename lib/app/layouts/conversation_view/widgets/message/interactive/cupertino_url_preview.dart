@@ -132,7 +132,7 @@ class CupertinoUrlPreview extends StatelessWidget {
                       ],
                     ),
                   ),
-                  if (controller.refreshRunning.value) _buildRefreshIndicator(context),
+                  if (controller.refreshRunning.value || controller.loading.value) _buildRefreshIndicator(context),
                 ],
               ),
             ],
@@ -149,7 +149,7 @@ class CupertinoUrlPreview extends StatelessWidget {
     return Padding(
       padding: inReply
           ? const EdgeInsets.fromLTRB(12.0, 12.0, 12.0, 12.0)
-          : const EdgeInsets.fromLTRB(18.0, 12.0, 15.0, 12.0),
+          : const EdgeInsets.fromLTRB(18.0, 12.0, 18.0, 12.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +188,7 @@ class CupertinoUrlPreview extends StatelessWidget {
                   ],
                 ),
               ),
-              if (controller.refreshRunning.value) _buildRefreshIndicator(context),
+              if (controller.refreshRunning.value || controller.loading.value) _buildRefreshIndicator(context),
             ],
           ),
         ],
@@ -232,7 +232,7 @@ class CupertinoUrlPreview extends StatelessWidget {
                   ],
                 ),
               ),
-              if (controller.refreshRunning.value) _buildRefreshIndicator(context),
+              if (controller.refreshRunning.value || controller.loading.value) _buildRefreshIndicator(context),
             ],
           ),
           if (controller.needsManualLoad.value && !inReply) const SizedBox(height: 10),
@@ -308,13 +308,13 @@ class CupertinoUrlPreview extends StatelessWidget {
                 File(iconImagePath),
                 gaplessPlayback: true,
                 filterQuality: FilterQuality.none,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               )
             : Image.network(
                 webIconUrl!,
                 gaplessPlayback: true,
                 filterQuality: FilterQuality.none,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
       ),
     );
@@ -401,13 +401,13 @@ class CupertinoUrlPreview extends StatelessWidget {
               File(previewImagePath),
               gaplessPlayback: true,
               filterQuality: FilterQuality.none,
-              errorBuilder: (_, __, ___) => _imageErrorText(context),
+              errorBuilder: (_, _, _) => _imageErrorText(context),
             )
           : Image.network(
               webImageUrl ?? '',
               gaplessPlayback: true,
               filterQuality: FilterQuality.none,
-              errorBuilder: (_, __, ___) => _imageErrorText(context),
+              errorBuilder: (_, _, _) => _imageErrorText(context),
             ),
     );
 
@@ -484,7 +484,7 @@ class CupertinoUrlPreview extends StatelessWidget {
       controller.resolvedContent!.bytes!,
       gaplessPlayback: true,
       filterQuality: FilterQuality.none,
-      errorBuilder: (_, __, ___) => _imageErrorText(context),
+      errorBuilder: (_, _, _) => _imageErrorText(context),
     );
   }
 

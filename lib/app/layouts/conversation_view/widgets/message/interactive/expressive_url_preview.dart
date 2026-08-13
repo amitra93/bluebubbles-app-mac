@@ -97,7 +97,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (header != null) header,
+        ?header,
         Padding(
           padding: inReply
               ? const EdgeInsets.all(M3ESpacing.md)
@@ -133,7 +133,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Flexible(child: _buildTextBlock(context, message: message, inReply: inReply)),
-        if (controller.refreshRunning.value) _buildRefreshIndicator(context),
+        if (controller.refreshRunning.value || controller.loading.value) _buildRefreshIndicator(context),
       ],
     );
   }
@@ -229,7 +229,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
                   ],
                 ),
               ),
-              if (controller.refreshRunning.value) _buildRefreshIndicator(context),
+              if (controller.refreshRunning.value || controller.loading.value) _buildRefreshIndicator(context),
             ],
           ),
           ..._buildManualLoadAffordance(context, inReply: inReply),
@@ -318,7 +318,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
         File(previewImagePath),
         fit: BoxFit.cover,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _imageFallback(context),
+        errorBuilder: (_, _, _) => _imageFallback(context),
       );
     } else if (webImageUrl != null) {
       animate = false;
@@ -326,7 +326,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
         webImageUrl,
         fit: BoxFit.cover,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _imageFallback(context),
+        errorBuilder: (_, _, _) => _imageFallback(context),
       );
     } else if (appleBytes != null) {
       animate = !controller.appleImageFromDisk.value;
@@ -334,7 +334,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
         appleBytes,
         fit: BoxFit.cover,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _imageFallback(context),
+        errorBuilder: (_, _, _) => _imageFallback(context),
       );
     } else if (appleFile != null) {
       animate = !controller.appleImageFromDisk.value;
@@ -342,7 +342,7 @@ class ExpressiveUrlPreview extends StatelessWidget {
         appleFile,
         fit: BoxFit.cover,
         gaplessPlayback: true,
-        errorBuilder: (_, __, ___) => _imageFallback(context),
+        errorBuilder: (_, _, _) => _imageFallback(context),
       );
     } else {
       return null;
@@ -406,14 +406,14 @@ class ExpressiveUrlPreview extends StatelessWidget {
                 fit: BoxFit.contain,
                 gaplessPlayback: true,
                 filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               )
             : Image.network(
                 webIconUrl!,
                 fit: BoxFit.contain,
                 gaplessPlayback: true,
                 filterQuality: FilterQuality.medium,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
               ),
       ),
     );
