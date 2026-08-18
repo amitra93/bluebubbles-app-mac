@@ -249,7 +249,7 @@ class DesktopNotifications {
 
   /// Ids of notifications currently in Action Center (per the OS, not our callback map).
   static Future<List<int>> activeIds() async {
-    if (Platform.isLinux) return [];  // No implementation in plugin
+    if (Platform.isLinux || Platform.isMacOS) return [];  // No need for OS IPC querying on macOS/Linux
     try {
       final List<ActiveNotification> active = await (_plugin?.getActiveNotifications() ?? Future.value([])).timeout(
         const Duration(seconds: 1),
