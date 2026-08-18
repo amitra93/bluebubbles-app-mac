@@ -83,40 +83,47 @@ class NotificationsService {
       if (kIsDesktop) {
         DesktopNotifications.registerMessageInteractionHandler(_handleDesktopMessageInteraction);
       }
-      await flnp.initialize(
-        settings: InitializationSettings(
-          android: const AndroidInitializationSettings('ic_stat_icon'),
-          linux: const LinuxInitializationSettings(defaultActionName: 'Open'),
-          macOS: const DarwinInitializationSettings(),
-          windows: WindowsInitializationSettings(
-            appName: 'BlueBubbles',
-            appUserModelId: windowsNotificationGuid,
-            guid: windowsNotificationGuid,
-            iconPath: join(
-              dirname(Platform.resolvedExecutable),
-              'data',
-              'flutter_assets',
-              'assets',
-              'icon',
-              'icon.ico',
+      try {
+        await flnp.initialize(
+          settings: InitializationSettings(
+            android: const AndroidInitializationSettings('ic_stat_icon'),
+            linux: const LinuxInitializationSettings(defaultActionName: 'Open'),
+            macOS: const DarwinInitializationSettings(),
+            windows: WindowsInitializationSettings(
+              appName: 'BlueBubbles',
+              appUserModelId: windowsNotificationGuid,
+              guid: windowsNotificationGuid,
+              iconPath: join(
+                dirname(Platform.resolvedExecutable),
+                'data',
+                'flutter_assets',
+                'assets',
+                'icon',
+                'icon.ico',
+              ),
             ),
           ),
-        ),
-        onDidReceiveNotificationResponse: (NotificationResponse? response) {
-          if (response == null) return;
-          if (kIsDesktop) {
-            DesktopNotifications.handleResponse(response);
-          } else if (response.payload != null) {
-            if (GetIt.I.isRegistered<IntentsService>()) {
-              // Fired for a notification tapped while the app was already attached
-              // and running, so activeChat is guaranteed to be in sync.
-              IntentsSvc.openChat(response.payload, isInitialIntent: false);
-            } else {
-              Logger.warn('IntentsService not registered, cannot open chat from notification tap');
+          onDidReceiveNotificationResponse: (NotificationResponse? response) {
+            if (response == null) return;
+            if (kIsDesktop) {
+              DesktopNotifications.handleResponse(response);
+            } else if (response.payload != null) {
+              if (GetIt.I.isRegistered<IntentsService>()) {
+                // Fired for a notification tapped while the app was already attached
+                // and running, so activeChat is guaranteed to be in sync.
+                IntentsSvc.openChat(response.payload, isInitialIntent: false);
+              } else {
+                Logger.warn('IntentsService not registered, cannot open chat from notification tap');
+              }
             }
-          }
-        },
-      );
+          },
+        ).timeout(const Duration(seconds: 3), onTimeout: () {
+          Logger.warn('FlutterLocalNotificationsPlugin initialize timed out');
+          return false;
+        });
+      } catch (e, s) {
+        Logger.error('Failed to initialize FlutterLocalNotificationsPlugin', error: e, trace: s);
+      }
       if (kIsDesktop) {
         DesktopNotifications.registerPlugin(flnp);
         return;

@@ -177,17 +177,29 @@ class StartupTasks {
   }) async {
     if (lifecycle) {
       Logger.info("Waiting for LifecycleService...");
-      await GetIt.I.isReady<LifecycleService>();
+      try {
+        await GetIt.I.isReady<LifecycleService>().timeout(const Duration(seconds: 5));
+      } catch (e) {
+        Logger.warn("LifecycleService wait timed out or failed: $e");
+      }
     }
     if (notifications) {
       Logger.info("Waiting for NotificationsService...");
-      await GetIt.I.isReady<NotificationsService>();
-      Logger.info("NotificationsService ready");
+      try {
+        await GetIt.I.isReady<NotificationsService>().timeout(const Duration(seconds: 5));
+        Logger.info("NotificationsService ready");
+      } catch (e) {
+        Logger.warn("NotificationsService wait timed out or failed: $e");
+      }
     }
     if (methodChannel) {
       Logger.info("Waiting for MethodChannelService...");
-      await GetIt.I.isReady<MethodChannelService>();
-      Logger.info("MethodChannelService ready");
+      try {
+        await GetIt.I.isReady<MethodChannelService>().timeout(const Duration(seconds: 5));
+        Logger.info("MethodChannelService ready");
+      } catch (e) {
+        Logger.warn("MethodChannelService wait timed out or failed: $e");
+      }
     }
   }
 

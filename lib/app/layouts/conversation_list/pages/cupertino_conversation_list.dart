@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:bluebubbles/database/models.dart';
+import 'package:universal_io/io.dart';
 import 'package:bluebubbles/app/wrappers/bb_app_bar.dart';
 import 'package:bluebubbles/helpers/helpers.dart';
 import 'package:bluebubbles/app/layouts/conversation_list/pages/conversation_list.dart';
