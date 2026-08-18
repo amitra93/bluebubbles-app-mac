@@ -238,7 +238,10 @@ class DesktopNotifications {
   static Future<void> cancel(int id) async {
     _callbacks.remove(id);
     try {
-      await _plugin?.cancel(id: id);
+      await _plugin?.cancel(id: id).timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => Logger.warn('Cancel desktop notification $id timed out', tag: 'DesktopNotifications'),
+      );
     } catch (e, s) {
       Logger.error('Failed to cancel desktop notification', error: e, trace: s, tag: 'DesktopNotifications');
     }
@@ -248,7 +251,13 @@ class DesktopNotifications {
   static Future<List<int>> activeIds() async {
     if (Platform.isLinux) return [];  // No implementation in plugin
     try {
-      final List<ActiveNotification> active = await _plugin?.getActiveNotifications() ?? [];
+      final List<ActiveNotification> active = await (_plugin?.getActiveNotifications() ?? Future.value([])).timeout(
+        const Duration(seconds: 1),
+        onTimeout: () {
+          Logger.warn('getActiveNotifications timed out', tag: 'DesktopNotifications');
+          return <ActiveNotification>[];
+        },
+      );
       return active.map((n) => n.id).nonNulls.toList();
     } catch (e, s) {
       Logger.error('Failed to get active desktop notifications', error: e, trace: s, tag: 'DesktopNotifications');
@@ -259,7 +268,10 @@ class DesktopNotifications {
   static Future<void> cancelAll() async {
     _callbacks.clear();
     try {
-      await _plugin?.cancelAll();
+      await _plugin?.cancelAll().timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => Logger.warn('Cancel all desktop notifications timed out', tag: 'DesktopNotifications'),
+      );
     } catch (e, s) {
       Logger.error('Failed to cancel all desktop notifications', error: e, trace: s, tag: 'DesktopNotifications');
     }

@@ -728,7 +728,9 @@ class NotificationsService {
       if (toastId != null) await DesktopNotifications.cancel(toastId);
       return;
     }
-    await flnp.cancel(id: id);
+    try {
+      await flnp.cancel(id: id).timeout(const Duration(seconds: 1));
+    } catch (_) {}
   }
 
   Future<void> clearDesktopNotificationsForChat(String chatGuid) async {
