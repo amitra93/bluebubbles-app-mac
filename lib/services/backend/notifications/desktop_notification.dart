@@ -237,6 +237,7 @@ class DesktopNotifications {
 
   static Future<void> cancel(int id) async {
     _callbacks.remove(id);
+    if (Platform.isMacOS) return;  // Native UNUserNotificationCenter.cancel blocks main UI thread synchronously on macOS
     try {
       await _plugin?.cancel(id: id).timeout(
         const Duration(seconds: 1),
@@ -267,6 +268,7 @@ class DesktopNotifications {
 
   static Future<void> cancelAll() async {
     _callbacks.clear();
+    if (Platform.isMacOS) return;
     try {
       await _plugin?.cancelAll().timeout(
         const Duration(seconds: 1),
