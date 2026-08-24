@@ -495,7 +495,16 @@ class DesktopNotifications {
           title: title,
           body: body,
           payload: notificationPayload,
-          notificationDetails: NotificationDetails(linux: linux(id)),
+          notificationDetails: NotificationDetails(
+            linux: linux(id),
+            macOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBanner: true,
+              presentSound: true,
+              presentBadge: true,
+              presentList: true,
+            ),
+          ),
         );
       }
     } catch (e, s) {

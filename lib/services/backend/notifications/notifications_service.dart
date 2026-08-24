@@ -23,6 +23,7 @@ import 'package:timezone/timezone.dart';
 import 'package:universal_html/html.dart' hide File, Platform, Navigator;
 import 'package:universal_io/io.dart';
 import 'package:get_it/get_it.dart';
+import 'package:window_manager/window_manager.dart';
 
 // ignore: non_constant_identifier_names
 NotificationsService get NotificationsSvc => GetIt.I<NotificationsService>();
@@ -253,8 +254,15 @@ class NotificationsService {
     if (message.isKeptAudio) return;
     if (chat.shouldMuteNotification(message)) return;
     if (!headless && LifecycleSvc.isAlive) {
-      if (ChatsSvc.isChatActive(chat.guid)) return;
-      if (ChatsSvc.activeChat == null &&
+      bool isWindowFocused = true;
+      if (kIsDesktop) {
+        try {
+          isWindowFocused = await windowManager.isFocused();
+        } catch (_) {}
+      }
+      if (isWindowFocused && ChatsSvc.isChatActive(chat.guid)) return;
+      if (isWindowFocused &&
+          ChatsSvc.activeChat == null &&
           Get.rawRoute?.settings.name == "/" &&
           !SettingsSvc.settings.notifyOnChatList.value) {
         return;
@@ -380,7 +388,7 @@ class NotificationsService {
     final oldTimer = debounceTimers[guid];
     oldTimer?.cancel();
     debounceTimers[guid] = Timer(
-      const Duration(milliseconds: 300),
+      const Duration(milliseconds: 50),
       () async => await _buildAndShowToast(chat, title, message),
     );
   }
