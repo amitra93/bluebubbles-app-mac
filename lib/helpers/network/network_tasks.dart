@@ -71,6 +71,7 @@ class NetworkTasks {
     setOriginOverride(null);
 
     // Phase 1: try the known local IPs reported by the server.
+    bool phase1Succeeded = false;
     try {
       final response = await HttpSvc.server.info();
       final data = response.data?['data'];
@@ -83,6 +84,7 @@ class NetworkTasks {
         ...localIpv4s,
       ];
 
+      phase1Succeeded = candidates.isNotEmpty;
       setOriginOverride(await _probeAddresses(candidates, port));
     } catch (e) {
       Logger.warn('Could not fetch server info for localhost detection: $e', tag: 'NetworkTasks');
@@ -93,6 +95,14 @@ class NetworkTasks {
       if (createSnackbar) {
         showToast('Connected to ${HttpSvc.originOverride}');
       }
+      return;
+    }
+
+    // If Phase 1 succeeded and reported the server's current local IPs, but none
+    // of them were reachable on the local network, we are not on the same LAN.
+    // Skip the expensive 255-host subnet port scan (Phase 2), which is only
+    // needed when the remote server URL itself is unreachable.
+    if (phase1Succeeded) {
       return;
     }
 

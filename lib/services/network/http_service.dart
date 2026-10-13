@@ -84,7 +84,8 @@ class HttpService implements BaseApi {
     try {
       return await func();
     } catch (e, s) {
-      // try again if 502 error and Cloudflare.
+      // try again if 502 error and Cloudflare, or on transient DNS lookup failure
+      // (e.g. macOS getaddrinfo errno 8 right after wake/resume).
       //
       // Both shapes have to be matched: JSON requests surface a `Response`
       // (ApiInterceptor resolves the failure into one), while binary requests
@@ -95,7 +96,12 @@ class HttpService implements BaseApi {
           : e is DioException
               ? e.response?.statusCode
               : null;
-      if (statusCode == 502 && apiRoot.contains("trycloudflare")) {
+      final isTransientDnsError = e.toString().contains("Failed host lookup") ||
+          (e is Response && (e.data?.toString().contains("Failed host lookup") ?? false));
+      if ((statusCode == 502 && apiRoot.contains("trycloudflare")) || isTransientDnsError) {
+        if (isTransientDnsError) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
         try {
           return await func();
         } catch (e, s) {
